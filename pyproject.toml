@@ -1,0 +1,23 @@
+[project]
+name = "image-creator-api"
+version = "1.0.0"
+description = "AI Image Creator API Service"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.104.1",
+    "uvicorn[standard]>=0.24.0",
+    "openai>=1.3.5",
+    "loguru>=0.7.2",
+    "pydantic>=2.5.0",
+    "jaai-hub",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["."]
+
+[tool.hatch.metadata]
+allow-direct-references = true

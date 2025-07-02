@@ -1,0 +1,39 @@
+services:
+  # Image Creator API Service
+  custom_api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+     - "8012:8000"
+    environment:
+      - PORT=8000
+      - LITE_LLM_URL=${LITE_LLM_URL}
+      - LITE_LLM_API_KEY=${LITE_LLM_API_KEY}
+
+  frpc:
+    image: registry.justadd.ai/jaai-chat/frpc:${FRPC_VERSION:-v1.0.1}
+    restart: always
+    build:
+      context: ./frpc
+      dockerfile: Dockerfile
+    environment:
+      FRPC_TOKEN: $FRPC_TOKEN
+      FRPC_CONFIG: frpc-dashboard.toml
+      FRPC_NAME: $FRPC_NAME
+      #FRPC_USER: $FRPC_USER
+      #FRPC_PASS: $FRPC_PASS
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      custom_api:
+        condition: service_started
+
+
+# Use the same named network as the main docker-compose.yaml
+# This allows the custom API services to communicate with other services
+networks:
+  default:
+    name: jaai-hub-network
+    external: true
