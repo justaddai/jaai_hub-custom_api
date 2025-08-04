@@ -1,0 +1,29 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "jaai-hub-custom-api"
+version = "1.0.0"
+description = "JAAI Hub Custom API Service"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.104.1",
+    "jaai-hub==0.1.0",
+    "langchain-community>=0.2.12",
+    "langchain-openai>=0.1.22",
+    "langchain>=0.2.17",
+    "loguru>=0.7.2",
+    "passlib[bcrypt]>=1.7.4",
+    "uvicorn[standard]>=0.24.0",
+]
+
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/custom_api"]
+
+[tool.hatch.metadata]
+allow-direct-references = true
+
+[project.scripts]
+start-custom-api = "custom_api.main:main"

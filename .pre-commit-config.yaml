@@ -1,0 +1,66 @@
+---
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.2.0
+    hooks:
+      - id: check-added-large-files
+        args: ["--maxkb=3500"]
+      - id: check-ast
+      - id: check-case-conflict
+      - id: check-json
+      - id: check-merge-conflict
+      - id: check-shebang-scripts-are-executable
+      - id: check-symlinks
+      - id: check-toml
+        exclude: ^application/frpc/frpc-.*\.toml$
+      - id: debug-statements
+      - id: destroyed-symlinks
+      - id: detect-private-key
+      - id: mixed-line-ending
+      - id: pretty-format-json
+        args: [--autofix, --indent, "4", --no-sort-keys, --no-ensure-ascii]
+      - id: trailing-whitespace
+
+  - repo: https://github.com/pre-commit/mirrors-prettier
+    rev: v2.6.2
+    hooks:
+      - id: prettier
+        types: [yaml]
+
+  - repo: https://github.com/pre-commit/pygrep-hooks
+    rev: v1.9.0
+    hooks:
+      - id: python-no-log-warn
+
+  - repo: https://github.com/psf/black
+    rev: 22.3.0
+    hooks:
+      - id: black
+        args: [--line-length, "120"]
+
+  - repo: https://github.com/pycqa/isort
+    rev: 5.12.0
+    hooks:
+      - id: isort
+        args: ["--profile", "black"]
+
+  - repo: https://github.com/nbQA-dev/nbQA
+    rev: 1.7.0
+    hooks:
+      - id: nbqa-black
+        args: ["--line-length=120"]
+      - id: nbqa-isort
+        args: ["--profile=black"]
+
+  - repo: https://github.com/PyCQA/autoflake
+    rev: v2.3.1
+    hooks:
+      - id: autoflake
+        name: Run autoflake (remove unused variables and imports)
+        args:
+          [
+            "--in-place",
+            "--remove-duplicate-keys",
+            "--remove-all-unused-imports",
+            "--remove-unused-variables",
+          ]
