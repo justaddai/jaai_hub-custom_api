@@ -1,15 +1,36 @@
+x-ports:
+  custom_api-port: &custom_api-port $CUSTOM_API_PORT
+
 services:
-  custom_api:
-    container_name: custom_api
+  custom_api-ngrok:
+    image: ngrok/ngrok:latest
     restart: always
+    profiles:
+      - custom_api
+    command:
+      - "http"
+      - "custom_api:${CUSTOM_API_PORT}"
+      - "--log=stdout"
+      - "--authtoken=${NGROK_AUTHTOKEN}"
+      - "--subdomain=${NGROK_SUBDOMAIN:-}"
+    environment:
+      NGROK_AUTHTOKEN: $NGROK_AUTHTOKEN
+      NGROK_SUBDOMAIN: $NGROK_SUBDOMAIN
+    depends_on:
+      - custom_api
+
+  custom_api:
+    restart: always
+    profiles:
+      - custom_api
     build:
       context: ./custom_api
       dockerfile: Dockerfile
     ports:
-      - target: $CUSTOM_API_PORT
-        published: $CUSTOM_API_PORT
+      - target: *custom_api-port
+        published: *custom_api-port
     environment:
-      CUSTOM_API_PORT: $CUSTOM_API_PORT
+      CUSTOM_API_PORT: *custom_api-port
       CUSTOM_API_USER: $CUSTOM_API_USER
       CUSTOM_API_PASSWORD: $CUSTOM_API_PASSWORD
       OPENAI_API_KEY: $OPENAI_API_KEY
