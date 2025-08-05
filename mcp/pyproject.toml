@@ -1,0 +1,25 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "jaai-hub-mcp"
+version = "1.0.0"
+description = "JAAI Hub MCP Service"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.104.1",
+    "loguru>=0.7.2",
+    "passlib[bcrypt]>=1.7.4",
+    "uvicorn[standard]>=0.24.0",
+]
+
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/mcp"]
+
+[tool.hatch.metadata]
+allow-direct-references = true
+
+[project.scripts]
+start-mcp = "mcp.main:main"
