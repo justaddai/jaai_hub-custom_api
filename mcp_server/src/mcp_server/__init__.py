@@ -1,4 +1,4 @@
-_package_name: str = "jaai-hub-custom-mcp"
+_package_name: str = "jaai-hub-mcp_server"
 try:
     import importlib.metadata
 

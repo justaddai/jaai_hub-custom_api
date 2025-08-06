@@ -1,7 +1,20 @@
 x-ports:
-  custom_api-port: &custom_api-port $CUSTOM_API_PORT
+  custom_api-port: &custom_api-port ${CUSTOM_API_PORT:-8000}
+  mcp_server-port: &mcp-port ${MCP_PORT:-8001}
+
+x-custom-api-env: &custom-api-env
+  CUSTOM_API_PORT: *custom_api-port
+  CUSTOM_API_USER: $CUSTOM_API_USER
+  CUSTOM_API_PASSWORD: $CUSTOM_API_PASSWORD
+  OPENAI_API_KEY: $OPENAI_API_KEY
+
+x-mcp-server-env: &mcp-server-env
+  MCP_PORT: *mcp-port
+  MCP_USERNAME: $MCP_USER
+  MCP_PASSWORD: $MCP_PASSWORD
 
 services:
+  ### Custom API ###
   custom_api-ngrok:
     image: ngrok/ngrok:latest
     restart: always
@@ -12,10 +25,10 @@ services:
       - "custom_api:${CUSTOM_API_PORT}"
       - "--log=stdout"
       - "--authtoken=${NGROK_AUTHTOKEN}"
-      - "--subdomain=${NGROK_SUBDOMAIN:-}"
+      - "--subdomain=${NGROK_CUSTOM_API_SUBDOMAIN:-}"
     environment:
       NGROK_AUTHTOKEN: $NGROK_AUTHTOKEN
-      NGROK_SUBDOMAIN: $NGROK_SUBDOMAIN
+      NGROK_CUSTOM_API_SUBDOMAIN: $NGROK_CUSTOM_API_SUBDOMAIN
     depends_on:
       - custom_api
 
@@ -29,8 +42,34 @@ services:
     ports:
       - target: *custom_api-port
         published: *custom_api-port
+    environment: *custom-api-env
+
+  ### MCP Server ###
+  mcp-ngrok:
+    image: ngrok/ngrok:latest
+    restart: always
+    profiles:
+      - mcp_server
+    command:
+      - "http"
+      - "mcp_server:${MCP_PORT:-8001}"
+      - "--log=stdout"
+      - "--authtoken=${NGROK_AUTHTOKEN}"
+      - "--subdomain=${MCP_NGROK_SUBDOMAIN:-}"
     environment:
-      CUSTOM_API_PORT: *custom_api-port
-      CUSTOM_API_USER: $CUSTOM_API_USER
-      CUSTOM_API_PASSWORD: $CUSTOM_API_PASSWORD
-      OPENAI_API_KEY: $OPENAI_API_KEY
+      NGROK_AUTHTOKEN: $NGROK_AUTHTOKEN
+      MCP_NGROK_SUBDOMAIN: $MCP_NGROK_SUBDOMAIN
+    depends_on:
+      - mcp_server
+
+  mcp_server:
+    restart: always
+    profiles:
+      - mcp_server
+    build:
+      context: ./mcp_server
+      dockerfile: Dockerfile
+    ports:
+      - target: *mcp-port
+        published: *mcp-port
+    environment: *mcp-server-env

@@ -1,5 +1,3 @@
-"""Image Creator API Service - Main Application"""
-
 import os
 import sys
 from typing import Any

@@ -1,6 +1,6 @@
 FROM python:3.11-slim
 
-WORKDIR /mcp
+WORKDIR /mcp_server
 
 ### Install general package requirements ###
 RUN apt-get update -y && \
@@ -10,13 +10,13 @@ RUN apt-get update -y && \
 
 # Install dependencies with uv using lockfile
 COPY ./pyproject.toml ./uv.lock ./
-COPY src/mcp/__init__.py src/mcp/__init__.py
+COPY src/mcp_server/__init__.py src/mcp_server/__init__.py
 RUN python -m pip install --upgrade --no-cache-dir pip && \
     pip install --no-cache-dir uv && \
     uv venv .venv && \
     . .venv/bin/activate && \
     uv sync --frozen
-ENV PATH="/mcp/.venv/bin:$PATH"
+ENV PATH="/mcp_server/.venv/bin:$PATH"
 COPY ./src ./src
 
 # Expose port
