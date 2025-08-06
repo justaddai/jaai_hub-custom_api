@@ -12,6 +12,7 @@ x-mcp-server-env: &mcp-server-env
   MCP_PORT: *mcp-port
   MCP_USERNAME: $MCP_USER
   MCP_PASSWORD: $MCP_PASSWORD
+  MCP_ENABLE_AUTH: $MCP_ENABLE_AUTH
 
 services:
   ### Custom API ###
@@ -73,3 +74,5 @@ services:
       - target: *mcp-port
         published: *mcp-port
     environment: *mcp-server-env
+    volumes:
+      - ./mcp_server/src/:/mcp_server/src/

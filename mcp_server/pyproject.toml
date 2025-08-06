@@ -11,6 +11,11 @@ dependencies = [
     "fastmcp>=1.0.0",
     "httpx>=0.25.0",
     "loguru>=0.7.2",
+    "python-dotenv>=1.0.0",
+    "libpass[bcrypt]>=1.9.1",
+    "python-multipart>=0.0.6",
+    "uvicorn>=0.30.0",
+    "rich>=14.1.0",
 ]
 
 

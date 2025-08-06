@@ -3,12 +3,20 @@ from typing import Any
 
 from fastmcp import FastMCP
 from loguru import logger
+from starlette.requests import Request
+from starlette.responses import PlainTextResponse
 
+from mcp_server.authentication import BasicAuthMiddleware
 from mcp_server.utils import call_external_api
 
-mcp: FastMCP = FastMCP("Externe APIs MCP Server")
+mcp: FastMCP = FastMCP(name="Externe APIs MCP Server")
 
-# MCP Tools mit FastMCP-Dekoratoren
+
+@mcp.custom_route("/health", methods=["GET"])
+async def get_mcp_server_healthcheck(_: Request) -> PlainTextResponse:
+    return PlainTextResponse("OK", status_code=200)
+
+
 @mcp.tool()
 async def cat_fact() -> str:
     """Holt einen interessanten Fakt über Katzen"""
@@ -38,27 +46,20 @@ async def advice() -> str:
     return response
 
 
-@mcp.tool()
-async def daily_inspiration(include_animals: bool = True) -> str:
-    """Erstellt eine tägliche Inspirationsnachricht mit Zitat und Fakten"""
-    quote: dict[str, Any] = await call_external_api("https://api.quotable.io/random")
-    advice_data: dict[str, Any] = await call_external_api("https://api.adviceslip.com/advice")
-
-    content: str = f"🌟 **Tägliche Inspiration** 🌟\n\n"
-    content += f"📝 **Zitat des Tages:**\n\"{quote['content']}\" - {quote['author']}\n\n"
-    content += f"💡 **Ratschlag:**\n{advice_data['slip']['advice']}\n\n"
-    if include_animals:
-        cat_fact_data: dict[str, Any] = await call_external_api("https://catfact.ninja/fact")
-        content += f"🐱 **Interessanter Fakt:**\n{cat_fact_data['fact']}\n\n"
-    content += "✨ _Wünsche dir einen wunderbaren Tag!_ ✨"
-    return content
-
-
 def main() -> None:
     port: int = int(os.getenv("MCP_PORT", "8001"))
+    enable_auth: bool = os.getenv("MCP_ENABLE_AUTH", "true").lower() == "true"
     logger.info(f"🚀 Starte JAAI Hub MCP Server für externe APIs")
     logger.info(f"🌐 Server läuft auf Port {port}")
-    mcp.run(transport="http", host="0.0.0.0", port=port, path="/mcp", log_level="info")
+    logger.info(f"🔒 Basic Auth ist {'aktiviert' if enable_auth else 'deaktiviert'}")
+    mcp.run(
+        transport="http",
+        host="0.0.0.0",
+        port=port,
+        path="/",
+        log_level="info",
+        middleware=[(BasicAuthMiddleware, [], {})] if enable_auth else [],
+    )
 
 
 if __name__ == "__main__":
