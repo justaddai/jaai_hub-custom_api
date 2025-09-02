@@ -9,7 +9,7 @@ description = "JAAI Hub Custom API Service"
 requires-python = ">=3.11"
 dependencies = [
     "fastapi>=0.104.1",
-    "jaai-hub==0.1.0",
+    "jaai-hub",
     "langchain-community>=0.2.12",
     "langchain-openai>=0.1.22",
     "langchain>=0.2.17",
