@@ -1,0 +1,29 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "jaai-hub-mcp-server"
+version = "1.0.0"
+description = "JAAI Hub MCP Server für externe APIs"
+requires-python = ">=3.11"
+dependencies = [
+    "fastmcp>=1.0.0",
+    "httpx>=0.25.0",
+    "loguru>=0.7.2",
+    "python-dotenv>=1.0.0",
+    "libpass[bcrypt]>=1.9.1",
+    "python-multipart>=0.0.6",
+    "uvicorn>=0.30.0",
+    "rich>=14.1.0",
+]
+
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/mcp_server"]
+
+[tool.hatch.metadata]
+allow-direct-references = true
+
+[project.scripts]
+start-mcp = "mcp_server.main:main"

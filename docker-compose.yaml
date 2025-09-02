@@ -1,39 +1,78 @@
+x-ports:
+  custom_api-port: &custom_api-port ${CUSTOM_API_PORT:-8000}
+  mcp_server-port: &mcp-port ${MCP_PORT:-8001}
+
+x-custom-api-env: &custom-api-env
+  CUSTOM_API_PORT: *custom_api-port
+  CUSTOM_API_USER: $CUSTOM_API_USER
+  CUSTOM_API_PASSWORD: $CUSTOM_API_PASSWORD
+  OPENAI_API_KEY: $OPENAI_API_KEY
+
+x-mcp-server-env: &mcp-server-env
+  MCP_PORT: *mcp-port
+  MCP_USERNAME: $MCP_USER
+  MCP_PASSWORD: $MCP_PASSWORD
+  MCP_ENABLE_AUTH: $MCP_ENABLE_AUTH
+
 services:
-  # Image Creator API Service
-  custom_api:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    restart: unless-stopped
-    ports:
-     - "8012:8000"
-    environment:
-      - PORT=8000
-      - LITE_LLM_URL=${LITE_LLM_URL}
-      - LITE_LLM_API_KEY=${LITE_LLM_API_KEY}
-
-  frpc:
-    image: registry.justadd.ai/jaai-chat/frpc:${FRPC_VERSION:-v1.0.1}
+  ### Custom API ###
+  custom_api-ngrok:
+    image: ngrok/ngrok:latest
     restart: always
-    build:
-      context: ./frpc
-      dockerfile: Dockerfile
+    profiles:
+      - custom_api
+    command:
+      - "http"
+      - "custom_api:${CUSTOM_API_PORT}"
+      - "--log=stdout"
+      - "--authtoken=${NGROK_AUTHTOKEN}"
+      - "--subdomain=${NGROK_CUSTOM_API_SUBDOMAIN:-}"
     environment:
-      FRPC_TOKEN: $FRPC_TOKEN
-      FRPC_CONFIG: frpc-dashboard.toml
-      FRPC_NAME: $FRPC_NAME
-      #FRPC_USER: $FRPC_USER
-      #FRPC_PASS: $FRPC_PASS
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
+      NGROK_AUTHTOKEN: $NGROK_AUTHTOKEN
+      NGROK_CUSTOM_API_SUBDOMAIN: $NGROK_CUSTOM_API_SUBDOMAIN
     depends_on:
-      custom_api:
-        condition: service_started
+      - custom_api
 
+  custom_api:
+    restart: always
+    profiles:
+      - custom_api
+    build:
+      context: ./custom_api
+      dockerfile: Dockerfile
+    ports:
+      - target: *custom_api-port
+        published: *custom_api-port
+    environment: *custom-api-env
 
-# Use the same named network as the main docker-compose.yaml
-# This allows the custom API services to communicate with other services
-networks:
-  default:
-    name: jaai-hub-network
-    external: true
+  ### MCP Server ###
+  mcp-ngrok:
+    image: ngrok/ngrok:latest
+    restart: always
+    profiles:
+      - mcp_server
+    command:
+      - "http"
+      - "mcp_server:${MCP_PORT:-8001}"
+      - "--log=stdout"
+      - "--authtoken=${NGROK_AUTHTOKEN}"
+      - "--subdomain=${MCP_NGROK_SUBDOMAIN:-}"
+    environment:
+      NGROK_AUTHTOKEN: $NGROK_AUTHTOKEN
+      MCP_NGROK_SUBDOMAIN: $MCP_NGROK_SUBDOMAIN
+    depends_on:
+      - mcp_server
+
+  mcp_server:
+    restart: always
+    profiles:
+      - mcp_server
+    build:
+      context: ./mcp_server
+      dockerfile: Dockerfile
+    ports:
+      - target: *mcp-port
+        published: *mcp-port
+    environment: *mcp-server-env
+    volumes:
+      - ./mcp_server/src/:/mcp_server/src/
