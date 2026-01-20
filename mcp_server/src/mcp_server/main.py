@@ -6,7 +6,7 @@ from loguru import logger
 from starlette.requests import Request
 from starlette.responses import PlainTextResponse
 
-from mcp_server.authentication import BasicAuthMiddleware
+from mcp_server.authentication import ApiKeyAuthMiddleware
 from mcp_server.utils import call_external_api
 
 mcp: FastMCP = FastMCP(name="Externe APIs MCP Server")
@@ -35,30 +35,17 @@ async def dog_image() -> str:
     return response
 
 
-@mcp.tool()
-async def advice() -> str:
-    """Holt einen zufälligen Lebensratschlag"""
-    result: dict[str, Any] = await call_external_api("https://api.adviceslip.com/advice")
-    advice_text: str = result.get("slip", {}).get("advice", "")
-    advice_id: int = result.get("slip", {}).get("id", 0)
-    response: str = f"💡 **Ratschlag #{advice_id}:** {advice_text}"
-    logger.info(f"🔍 Advice: {response}")
-    return response
-
-
 def main() -> None:
     port: int = int(os.getenv("MCP_PORT", "8001"))
-    enable_auth: bool = os.getenv("MCP_ENABLE_AUTH", "true").lower() == "true"
-    logger.info(f"🚀 Starte JAAI Hub MCP Server für externe APIs")
+    logger.info("🚀 Starte JAAI Hub MCP Server für externe APIs")
     logger.info(f"🌐 Server läuft auf Port {port}")
-    logger.info(f"🔒 Basic Auth ist {'aktiviert' if enable_auth else 'deaktiviert'}")
     mcp.run(
-        transport="http",
+        transport="streamable-http",
         host="0.0.0.0",
         port=port,
         path="/",
         log_level="info",
-        middleware=[(BasicAuthMiddleware, [], {})] if enable_auth else [],
+        middleware=[(ApiKeyAuthMiddleware, [], {})],
     )
 
 

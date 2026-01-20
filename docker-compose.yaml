@@ -10,9 +10,7 @@ x-custom-api-env: &custom-api-env
 
 x-mcp-server-env: &mcp-server-env
   MCP_PORT: *mcp-port
-  MCP_USERNAME: $MCP_USER
-  MCP_PASSWORD: $MCP_PASSWORD
-  MCP_ENABLE_AUTH: $MCP_ENABLE_AUTH
+  MCP_API_KEY: $MCP_API_KEY
 
 services:
   ### Custom API ###
@@ -26,9 +24,11 @@ services:
       - "custom_api:${CUSTOM_API_PORT}"
       - "--log=stdout"
       - "--authtoken=${NGROK_AUTHTOKEN}"
+      - "--domain=${NGROK_CUSTOM_API_DOMAIN:-}"
       - "--subdomain=${NGROK_CUSTOM_API_SUBDOMAIN:-}"
     environment:
       NGROK_AUTHTOKEN: $NGROK_AUTHTOKEN
+      NGROK_CUSTOM_API_DOMAIN: $NGROK_CUSTOM_API_DOMAIN
       NGROK_CUSTOM_API_SUBDOMAIN: $NGROK_CUSTOM_API_SUBDOMAIN
     depends_on:
       - custom_api
@@ -56,10 +56,12 @@ services:
       - "mcp_server:${MCP_PORT:-8001}"
       - "--log=stdout"
       - "--authtoken=${NGROK_AUTHTOKEN}"
-      - "--subdomain=${MCP_NGROK_SUBDOMAIN:-}"
+      - "--domain=${NGROK_MCP_DOMAIN:-}"
+      - "--subdomain=${NGROK_MCP_SUBDOMAIN:-}"
     environment:
       NGROK_AUTHTOKEN: $NGROK_AUTHTOKEN
-      MCP_NGROK_SUBDOMAIN: $MCP_NGROK_SUBDOMAIN
+      NGROK_MCP_DOMAIN: $NGROK_MCP_DOMAIN
+      NGROK_MCP_SUBDOMAIN: $NGROK_MCP_SUBDOMAIN
     depends_on:
       - mcp_server
 
