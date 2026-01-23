@@ -7,6 +7,8 @@ x-custom-api-env: &custom-api-env
   CUSTOM_API_USER: $CUSTOM_API_USER
   CUSTOM_API_PASSWORD: $CUSTOM_API_PASSWORD
   OPENAI_API_KEY: $OPENAI_API_KEY
+  BOTARIO_BOT_ID: $BOTARIO_BOT_ID
+  BOTARIO_API_BASE: $BOTARIO_API_BASE
 
 x-mcp-server-env: &mcp-server-env
   MCP_PORT: *mcp-port
@@ -76,3 +78,18 @@ services:
     environment: *mcp-server-env
     volumes:
       - ./mcp_server/src/:/mcp_server/src/
+
+  ###############
+  ### botario custom-api-service
+  ###############
+  custom_api_botario:
+    restart: always
+    profiles:
+      - custom_api
+    build:
+      context: ./custom_api_botario
+      dockerfile: Dockerfile
+    ports:
+      - target: *custom_api-port
+        published: *custom_api-port
+    environment: *custom-api-env

@@ -1,0 +1,106 @@
+import asyncio
+import json
+import os
+
+import httpx
+from fastapi import APIRouter, HTTPException
+from fastapi.responses import StreamingResponse
+from jaai_hub.streaming_message import SourceGenType, Status, StreamingMessage
+from loguru import logger
+
+from custom_api_botario.models import (
+    BotarioCompletion,
+    BotarioCompletionPayload,
+    BotarioResponse,
+    ChatCompletionRequestBotario,
+)
+
+router: APIRouter = APIRouter(
+    tags=["botario"],
+    responses={404: {"description": "Not found"}},
+)
+
+# Botario API configuration
+BOTARIO_BOT_ID: str = os.getenv("BOTARIO_BOT_ID", "")
+BOTARIO_API_BASE: str = os.getenv("BOTARIO_API_BASE", "https://bm.test.genai.justadd.ai")
+
+
+def get_botario_url() -> str:
+    """Build the Botario API URL from environment variables"""
+    return f"{BOTARIO_API_BASE}/api/bots/{BOTARIO_BOT_ID}/chats/send-message"
+
+
+async def call_botario_api(message: str, session_id: str) -> BotarioResponse:
+    """Call the Botario API and return the response"""
+    url: str = get_botario_url()
+    logger.debug(f"🤖 Calling Botario API at {url}")
+
+    payload: BotarioCompletion = BotarioCompletion(
+        payload=BotarioCompletionPayload(type="text", text=message),
+        sessionId=session_id,
+        startUrl="",
+    )
+
+    async with httpx.AsyncClient(timeout=30.0) as client:
+        response = await client.post(url, json=payload.model_dump())
+        response.raise_for_status()
+
+        # Botario returns line-delimited JSON, parse each line
+        lines = response.text.strip().split("\n")
+        for line in lines:
+            if line.strip():
+                data = json.loads(line)
+                bot_response = BotarioResponse.model_validate(data)
+                # Return the first response with text content
+                if bot_response.payload.text:
+                    return bot_response
+
+        # If no response with text found, return the last one
+        return BotarioResponse.model_validate(json.loads(lines[-1]))
+
+
+@router.post("/chat/completions")
+async def chat_completion(request: ChatCompletionRequestBotario) -> StreamingResponse:
+    """Chat completion endpoint for Botario with streaming support"""
+    logger.info(f"🤖 Received Botario request with {len(request.messages)} messages")
+    logger.debug(f"🤖 Request model: {request.model}, stream: {request.stream}")
+    if request.stream:
+        logger.info("🤖 Starting streaming response for Botario")
+        return StreamingResponse(StreamingMessage(stream_botario_response(request)), media_type="text/event-stream")
+    else:
+        logger.warning("🤖 Non-streaming requests not supported for Botario")
+        raise HTTPException(status_code=400, detail="Streaming is required for Botario")
+
+
+def extract_text_from_response(response: BotarioResponse) -> str:
+    """Extracts plain text from a BotarioResponse"""
+    return response.payload.text
+
+
+async def stream_botario_response(request: ChatCompletionRequestBotario) -> SourceGenType:
+    """Generate streaming response for Botario"""
+    logger.info("🤖 Starting Botario workflow")
+
+    # Get message from the last user message
+    last_message: str = request.messages[-1].content if request.messages else ""
+    logger.debug(f"🤖 Message text length: {len(last_message)} characters")
+    if not last_message.strip():
+        yield "❌ **Fehler:** Bitte geben Sie eine Nachricht ein."
+        return
+
+    try:
+        yield Status(type="basic", text="🤖 Verarbeite Anfrage...")
+        await asyncio.sleep(0.3)
+
+        # Call Botario API
+        botario_response: BotarioResponse = await call_botario_api(last_message, request.session_id)
+        response_text: str = extract_text_from_response(botario_response)
+
+        yield response_text
+
+        yield Status(type="complete", text="✅ Fertig!")
+        logger.success("🤖 Botario workflow completed successfully")
+
+    except Exception as error:
+        logger.exception("🤖 Botario request failed")
+        yield f"❌ **Fehler:** {str(error)}"
