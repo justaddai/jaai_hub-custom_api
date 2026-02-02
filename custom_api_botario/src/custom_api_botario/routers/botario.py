@@ -3,8 +3,9 @@ import json
 import os
 
 import httpx
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Header
 from fastapi.responses import StreamingResponse
+from jaai_hub.custom_api import ChatCompletionRequest
 from jaai_hub.streaming_message import SourceGenType, Status, StreamingMessage
 from loguru import logger
 
@@ -12,7 +13,6 @@ from custom_api_botario.models import (
     BotarioCompletion,
     BotarioCompletionPayload,
     BotarioResponse,
-    ChatCompletionRequestBotario,
 )
 
 router: APIRouter = APIRouter(
@@ -60,16 +60,17 @@ async def call_botario_api(message: str, session_id: str) -> BotarioResponse:
 
 
 @router.post("/chat/completions")
-async def chat_completion(request: ChatCompletionRequestBotario) -> StreamingResponse:
+async def chat_completion(
+    request: ChatCompletionRequest,
+    session_id: str = Header(..., alias="X-Session-ID", description="Session ID for the Botario chat session"),
+) -> StreamingResponse:
     """Chat completion endpoint for Botario with streaming support"""
     logger.info(f"🤖 Received Botario request with {len(request.messages)} messages")
-    logger.debug(f"🤖 Request model: {request.model}, stream: {request.stream}")
-    if request.stream:
-        logger.info("🤖 Starting streaming response for Botario")
-        return StreamingResponse(StreamingMessage(stream_botario_response(request)), media_type="text/event-stream")
-    else:
-        logger.warning("🤖 Non-streaming requests not supported for Botario")
-        raise HTTPException(status_code=400, detail="Streaming is required for Botario")
+
+    # Botario always streams - ignore the stream parameter
+    return StreamingResponse(
+        StreamingMessage(stream_botario_response(request, session_id)), media_type="text/event-stream"
+    )
 
 
 def extract_text_from_response(response: BotarioResponse) -> str:
@@ -77,7 +78,7 @@ def extract_text_from_response(response: BotarioResponse) -> str:
     return response.payload.text
 
 
-async def stream_botario_response(request: ChatCompletionRequestBotario) -> SourceGenType:
+async def stream_botario_response(request: ChatCompletionRequest, session_id: str) -> SourceGenType:
     """Generate streaming response for Botario"""
     logger.info("🤖 Starting Botario workflow")
 
@@ -93,7 +94,7 @@ async def stream_botario_response(request: ChatCompletionRequestBotario) -> Sour
         await asyncio.sleep(0.3)
 
         # Call Botario API
-        botario_response: BotarioResponse = await call_botario_api(last_message, request.session_id)
+        botario_response: BotarioResponse = await call_botario_api(last_message, session_id)
         response_text: str = extract_text_from_response(botario_response)
 
         yield response_text

@@ -1,9 +1,4 @@
-from jaai_hub.custom_api import ChatCompletionRequest
 from pydantic import BaseModel, Field
-
-
-class ChatCompletionRequestBotario(ChatCompletionRequest):
-    session_id: str
 
 
 class BotarioMetadata(BaseModel):
