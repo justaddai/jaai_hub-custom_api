@@ -1,9 +1,16 @@
-from pydantic import BaseModel, Field
+from typing import Optional
+
+from pydantic import BaseModel, Field, field_validator
 
 
 class BotarioMetadata(BaseModel):
     node_name: str = Field(default="", alias="__node_name__")
     active_story_name: str = Field(default="", alias="__active_story_name__")
+
+    @field_validator("node_name", "active_story_name", mode="before")
+    @classmethod
+    def none_to_empty(cls, v: Optional[str]) -> str:
+        return v if v is not None else ""
 
 
 class BotarioResponsePayload(BaseModel):

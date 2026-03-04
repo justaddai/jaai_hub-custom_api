@@ -1,9 +1,8 @@
 import asyncio
 import json
-import os
 
 import httpx
-from fastapi import APIRouter, Header
+from fastapi import APIRouter, Header, Path
 from fastapi.responses import StreamingResponse
 from jaai_hub.custom_api import ChatCompletionRequest
 from jaai_hub.streaming_message import SourceGenType, Status, StreamingMessage
@@ -20,19 +19,15 @@ router: APIRouter = APIRouter(
     responses={404: {"description": "Not found"}},
 )
 
-# Botario API configuration
-BOTARIO_BOT_ID: str = os.getenv("BOTARIO_BOT_ID", "")
-BOTARIO_API_BASE: str = os.getenv("BOTARIO_API_BASE", "https://bm.test.genai.justadd.ai")
+
+def get_botario_url(botario_host: str, bot_id: str) -> str:
+    """Build the Botario API URL with the given host and bot_id"""
+    return f"https://{botario_host}/api/bots/{bot_id}/chats/send-message"
 
 
-def get_botario_url() -> str:
-    """Build the Botario API URL from environment variables"""
-    return f"{BOTARIO_API_BASE}/api/bots/{BOTARIO_BOT_ID}/chats/send-message"
-
-
-async def call_botario_api(message: str, session_id: str) -> BotarioResponse:
+async def call_botario_api(message: str, session_id: str, botario_host: str, bot_id: str) -> BotarioResponse:
     """Call the Botario API and return the response"""
-    url: str = get_botario_url()
+    url: str = get_botario_url(botario_host, bot_id)
     logger.debug(f"🤖 Calling Botario API at {url}")
 
     payload: BotarioCompletion = BotarioCompletion(
@@ -59,17 +54,20 @@ async def call_botario_api(message: str, session_id: str) -> BotarioResponse:
         return BotarioResponse.model_validate(json.loads(lines[-1]))
 
 
-@router.post("/chat/completions")
+@router.post("/{botario_host}/{bot_id}/chat/completions")
 async def chat_completion(
     request: ChatCompletionRequest,
+    botario_host: str = Path(example="bm.test.genai.justadd.ai"),
+    bot_id: str = Path(example="69385b11097677787aea64ec"),
     session_id: str = Header(..., alias="X-Session-ID", description="Session ID for the Botario chat session"),
 ) -> StreamingResponse:
     """Chat completion endpoint for Botario with streaming support"""
-    logger.info(f"🤖 Received Botario request with {len(request.messages)} messages")
+    logger.info(f"🤖 Received Botario request for bot {bot_id} at {botario_host} with {len(request.messages)} messages")
 
     # Botario always streams - ignore the stream parameter
     return StreamingResponse(
-        StreamingMessage(stream_botario_response(request, session_id)), media_type="text/event-stream"
+        StreamingMessage(stream_botario_response(request, session_id, botario_host, bot_id)),
+        media_type="text/event-stream",
     )
 
 
@@ -78,9 +76,11 @@ def extract_text_from_response(response: BotarioResponse) -> str:
     return response.payload.text
 
 
-async def stream_botario_response(request: ChatCompletionRequest, session_id: str) -> SourceGenType:
+async def stream_botario_response(
+    request: ChatCompletionRequest, session_id: str, botario_host: str, bot_id: str
+) -> SourceGenType:
     """Generate streaming response for Botario"""
-    logger.info("🤖 Starting Botario workflow")
+    logger.info(f"🤖 Starting Botario workflow for bot {bot_id} at {botario_host}")
 
     # Get message from the last user message
     last_message: str = request.messages[-1].content if request.messages else ""
@@ -94,7 +94,7 @@ async def stream_botario_response(request: ChatCompletionRequest, session_id: st
         await asyncio.sleep(0.3)
 
         # Call Botario API
-        botario_response: BotarioResponse = await call_botario_api(last_message, session_id)
+        botario_response: BotarioResponse = await call_botario_api(last_message, session_id, botario_host, bot_id)
         response_text: str = extract_text_from_response(botario_response)
 
         yield response_text
