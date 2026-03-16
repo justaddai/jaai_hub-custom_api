@@ -10,10 +10,10 @@ from fastapi.openapi.utils import get_openapi
 from fastapi.responses import HTMLResponse
 from loguru import logger
 
-from custom_api import __version__ as API_VERSION
-from custom_api.authentication import verify_basic_auth
-from custom_api.routers.healthcheck import APP as healthcheck_router
-from custom_api.routers.recipe import router as recipe_assistant_router
+from custom_api_botario import __version__ as API_VERSION
+from custom_api_botario.authentication import verify_basic_auth
+from custom_api_botario.routers.botario import router as botario_router
+from custom_api_botario.routers.healthcheck import APP as healthcheck_router
 
 # Configure loguru
 logger.remove()  # Remove default handler
@@ -69,14 +69,14 @@ async def read_root(_: str = Depends(verify_basic_auth)) -> dict[str, str]:
 
 # Mount the routers
 app.include_router(healthcheck_router, tags=["Healthcheck"], dependencies=[Depends(verify_basic_auth)])
-app.include_router(recipe_assistant_router, tags=["Recipe Assistant"], dependencies=[Depends(verify_basic_auth)])
+app.include_router(botario_router, tags=["Botario"], dependencies=[Depends(verify_basic_auth)])
 
 
 def main() -> None:
     port: int = int(os.getenv("CUSTOM_API_PORT", "8000"))
-    logger.info(f"Starting JAAI Hub Custom API server on port {port}")
+    logger.info(f"Starting KI-HUB Custom API server for botario bot conversation on port {port}")
     uvicorn.run(
-        "custom_api.main:app",
+        "custom_api_botario.main:app",
         host="0.0.0.0",
         port=port,
         reload=False,

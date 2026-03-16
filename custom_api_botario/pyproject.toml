@@ -2,6 +2,9 @@
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
+[tool.poetry]
+package-mode = false
+
 [project]
 name = "jaai-hub-custom-api"
 version = "1.0.0"
@@ -9,6 +12,7 @@ description = "JAAI Hub Custom API Service"
 requires-python = ">=3.11"
 dependencies = [
     "fastapi>=0.104.1",
+    "httpx>=0.27.0",
     "jaai-hub",
     "langchain-community>=0.2.12",
     "langchain-openai>=0.1.22",
@@ -20,10 +24,10 @@ dependencies = [
 
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/custom_api"]
+packages = ["src/custom_api_botario"]
 
 [tool.hatch.metadata]
 allow-direct-references = true
 
 [project.scripts]
-start-custom-api = "custom_api.main:main"
+start-custom-api = "custom_api_botario.main:main"
