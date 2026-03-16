@@ -20,6 +20,11 @@ class BotarioResponsePayload(BaseModel):
     type: str = ""
     streamed: bool = False
 
+    @field_validator("text", "active_story", "type", mode="before")
+    @classmethod
+    def none_to_empty(cls, v: Optional[str]) -> str:
+        return v if v is not None else ""
+
 
 class BotarioResponse(BaseModel):
     type: str = ""
